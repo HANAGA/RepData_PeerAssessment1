@@ -28,6 +28,11 @@ The variables included in this dataset are:
 ##Loading and preprocessing the data
 ####1. Attaching required Libraries
 
+```r
+library(stringr)
+library(dplyr)
+```
+
 ```
 ## 
 ## Attaching package: 'dplyr'
@@ -82,6 +87,9 @@ head(activity_data)
 ####3. Preprocessing the data
   a. **date** field is maintaing as a **Factor**, it needs to be maintained with **Date** data type
 
+```r
+activity_data$date <- as.Date(activity_data$date)
+```
   
   b. every date observation needs to be identified as **Weekday** or **Weekend**.  Hint: Weekend day names start with **"S"**
 
@@ -126,9 +134,23 @@ head(activity_data)
 
   c. 2304 observations contain *NA* entries. Further analyis does not require them. So, they need to be removed.
 
+```r
+activity <- filter(activity_data, !is.na(steps))
+```
 
 ##What is mean total number of steps taken per day?
 ####1. Histogram of the total number of steps taken each day
+
+```r
+steps_per_day <- summarise(group_by(activity, date), total=sum(steps))
+
+lab_main <- "Total number of steps\ntaken per day"
+lab_x    <- "Total Steps/Day"
+lab_y    <- "Count of Days having those steps"
+
+hist(steps_per_day$total,xlab=lab_x, ylab=lab_y, main=lab_main,ylim=range(1:30),labels=T, col=rainbow(5)) 
+```
+
 ![](PA1_template_files/figure-html/plot1-1.png) 
 
 ####2. Mean and Median total number of steps taken per day
@@ -143,6 +165,24 @@ c(v_mean, v_median)
 
 ##What is the average daily activity pattern?
 ####1. Time series plot of the 5-minute interval and the average number of steps taken
+
+```r
+steps_per_interval <- summarise(group_by(activity, interval), mean=mean(steps))
+
+lab_main <- "Average daily activity pattern"
+lab_x    <- "5-minute interval (HHMM) of one Day"
+lab_y    <- "Average number of Steps taken"
+
+plot(mean~interval,data=steps_per_interval,type="l", xlab=lab_x, ylab=lab_y, main=lab_main)
+
+y_max_val     = max(steps_per_interval$mean)
+x_max_val_pos = steps_per_interval[which.max(steps_per_interval$mean),]$interval
+
+peak_time <- paste(str_pad(x_max_val_pos%/%100,2,pad="0"),str_pad(x_max_val_pos%%100,2,pad="0"),sep=":")
+peak_text = paste("Max. average steps", round(y_max_val,0), "\nare taken at", peak_time)
+text(x_max_val_pos, max(steps_per_interval$mean),peak_text,pos=1, col=2)
+```
+
 ![](PA1_template_files/figure-html/plot2-1.png) 
 
 ####2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
@@ -156,6 +196,19 @@ print(peak_text)
 ##Imputing missing values
 Replacing the missing values ( NA entries ) of original data set  **activity_data** with mean values of same interval from the data set **activity**
 
+```r
+activity_data_imputed <- activity_data
+who <- which(is.na(activity_data_imputed$steps))
+f=function(x){
+ g=globalenv();
+ int=g$activity_data_imputed$interval[x]
+ ind_df2 = which(g$steps_per_interval$interval==int)
+ val=g$steps_per_interval$mean[ind_df2]
+ g$activity_data_imputed$steps[x] = val
+}
+
+sapply(who, f)
+```
 
 ####There are no missing values. All are replaced.
 
@@ -167,6 +220,31 @@ print(who)
 integer(0)
 
 ##Are there differences in activity patterns between weekdays and weekends?
+
+
+```r
+par(mfrow=c(2,1))
+
+activity_weekday <- filter(activity_data_imputed, day=="Weekday")
+steps_per_wkday <- summarise(group_by(activity_weekday, interval), mean=mean(steps))
+
+
+lab_main <- "Average Weekday activity pattern"
+lab_x    <- "5-minute interval (HHMM) of one Day"
+lab_y    <- "Average number of Steps taken"
+
+plot(mean~interval,data=steps_per_wkday,type="l", xlab="",ylab=lab_y, main=lab_main)
+
+
+activity_weekend <- filter(activity_data_imputed, day=="Weekend")
+steps_per_wkend <- summarise(group_by(activity_weekend, interval), mean=mean(steps))
+
+lab_main <- "Average Weekend activity pattern"
+lab_x    <- "5-minute interval (HHMM) of one Day"
+lab_y    <- "Average number of Steps taken"
+
+plot(mean~interval,data=steps_per_wkend,type="l", xlab=lab_x, ylab=lab_y)
+```
 
 ![](PA1_template_files/figure-html/plot4-1.png) 
 
