@@ -4,9 +4,9 @@ output:
     keep_md: yes
 ---
 #Reproducible Research: Peer Assessment 1
-```{r setoptions, TRUE}
+```{r setoptions, FALSE}
 require(knitr)
-opts_chunk$set( echo = TRUE , results="asis")
+opts_chunk$set( echo = FALSE , results="hide")
 ```
 ##About data
 1. **Dataset**: Activity monitoring data [52K]
@@ -25,7 +25,7 @@ library(stringr)
 library(dplyr)
 ```
 ####2. Loading data into R
-```{r}
+```{r echo=TRUE, results="asis"}
 zip_file <- "C:/Users/Administrator/datasciencecoursera/RepData_PeerAssessment1/activity.zip"
 activity_data <- read.csv(unz(zip_file,"activity.csv"),sep=",", header=T)
 
@@ -33,30 +33,32 @@ str(activity_data)
 summary(activity_data)
 head(activity_data)
 ```
+
 ####3. Preprocessing the data
-  a. 2304 observations contain *NA* entries. Further analyis does not require them. So, they need to be removed.
+  a. **date** field is maintaing as a **Factor**, it needs to be maintained with **Date** data type
+```{r}
+activity_data$date <- as.Date(activity_data$date)
+```
+  
+  b. every date observation needs to be identified as **Weekday** or **Weekend**.  Hint: Weekend day names start with **"S"**
+```{r summary1, echo=TRUE, results="asis"}
+activity_data$day <- weekdays(activity_data$date,abbreviate=T)
+activity_data$day[substr(activity_data$day,1,1)!="S"] <- "Weekday"
+activity_data$day[substr(activity_data$day,1,1)=="S"] <- "Weekend"
+activity_data$day <- factor(activity_data$day)
+str(activity_data)
+summary(activity_data)
+head(activity_data)
+```
+
+  c. 2304 observations contain *NA* entries. Further analyis does not require them. So, they need to be removed.
 ```{r}
 activity <- filter(activity_data, !is.na(steps))
 ```
-  
-  b. **date** field is maintaing as a **Factor**, it needs to be maintained with **Date** data type
-```{r}
-activity$date <- as.Date(activity$date)
-```
-  
-  c. every date observation needs to be identified as **Weekday** or **Weekend**.  Hint: Weekend day names start with **"S"**
-```{r summary1, echo=TRUE}
-activity$day <- weekdays(activity$date,abbreviate=T)
-activity$day[substr(activity$day,1,1)!="S"] <- "Weekday"
-activity$day[substr(activity$day,1,1)=="S"] <- "Weekend"
-activity$day <- factor(activity$day)
-str(activity)
-summary(activity)
-head(activity)
-```
+
 ##What is mean total number of steps taken per day?
 ####1. Histogram of the total number of steps taken each day
-```{r plot, fig.height=5}
+```{r plot1, fig.height=5}
 steps_per_day <- summarise(group_by(activity, date), total=sum(steps))
 
 lab_main <- "Total number of steps\ntaken per day"
@@ -67,7 +69,7 @@ hist(steps_per_day$total,xlab=lab_x, ylab=lab_y, main=lab_main,ylim=range(1:30),
 ```
 
 ####2. Mean and Median total number of steps taken per day
-```{r}
+```{r echo=TRUE, results="asis"}
 v_mean   <- mean(steps_per_day$total)
 v_median <- median(steps_per_day$total)
 c(v_mean, v_median)
@@ -75,7 +77,7 @@ c(v_mean, v_median)
 
 ##What is the average daily activity pattern?
 ####1. Time series plot of the 5-minute interval and the average number of steps taken
-```{r}
+```{r plot2, fig.height=5}
 steps_per_interval <- summarise(group_by(activity, interval), mean=mean(steps))
 
 lab_main <- "Average daily activity pattern"
@@ -93,18 +95,40 @@ text(x_max_val_pos, max(steps_per_interval$mean),peak_text,pos=1, col=2)
 ```
 
 ####2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
-```{r}
+```{r echo=TRUE, results="asis"}
 print(peak_text)
 ```
 
 ##Imputing missing values
+Replacing the missing values ( NA entries ) of original data set  **activity_data** with mean values of same interval from the data set **activity**
+```{r imputed, echo=FALSE}
+activity_data_imputed <- activity_data
+who <- which(is.na(activity_data_imputed$steps))
+f=function(x){
+ g=globalenv();
+ int=g$activity_data_imputed$interval[x]
+ ind_df2 = which(g$steps_per_interval$interval==int)
+ val=g$steps_per_interval$mean[ind_df2]
+ g$activity_data_imputed$steps[x] = val
+}
+
+sapply(who, f)
+```
+
+####There are no missing values. All are replaced.
+```{r echo=TRUE, results="asis"}
+who <- which(is.na(activity_data_imputed$steps))
+print(who)
+```
 
 ##Are there differences in activity patterns between weekdays and weekends?
-```{r}
+
+```{r plot4, fig.height=5}
 par(mfrow=c(2,1))
 
-activity_weekday <- filter(activity, day=="Weekday")
-steps_per_wkday  <- summarise(group_by(activity_weekday, interval), mean=mean(steps))
+activity_weekday <- filter(activity_data_imputed, day=="Weekday")
+steps_per_wkday <- summarise(group_by(activity_weekday, interval), mean=mean(steps))
+
 
 lab_main <- "Average Weekday activity pattern"
 lab_x    <- "5-minute interval (HHMM) of one Day"
@@ -113,17 +137,17 @@ lab_y    <- "Average number of Steps taken"
 plot(mean~interval,data=steps_per_wkday,type="l", xlab="",ylab=lab_y, main=lab_main)
 
 
-activity_weekend <- filter(activity, day=="Weekend")
-steps_per_wkend  <- summarise(group_by(activity_weekend, interval), mean=mean(steps))
+activity_weekend <- filter(activity_data_imputed, day=="Weekend")
+steps_per_wkend <- summarise(group_by(activity_weekend, interval), mean=mean(steps))
 
-lab_main <- "Average Weenend activity pattern"
+lab_main <- "Average Weekend activity pattern"
 lab_x    <- "5-minute interval (HHMM) of one Day"
 lab_y    <- "Average number of Steps taken"
 
-plot(mean~interval,data=steps_per_wkend,type="l", xlab=lab_x, ylab=lab_y, main=lab_main)
+plot(mean~interval,data=steps_per_wkend,type="l", xlab=lab_x, ylab=lab_y)
 ```
 
-####Conclusion
-1. in Weekdays, during morning hours we can find more activity
+####Conclusion:
+1. in Weekdays, more activity is during morning time 
 
-2. in Weekends, almost same amount of activity we can find
+2. in Weekends, activity is almost uniform throughout the day
