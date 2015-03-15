@@ -47,7 +47,7 @@ head(activity)
 ```
 ##What is mean total number of steps taken per day?
 ####1. Histogram of the total number of steps taken each day
-```{r}
+```{r plot, fig.height=5}
 steps_per_day <- summarise(group_by(activity, date), total=sum(steps))
 
 lab_main <- "Total number of steps\ntaken per day"
