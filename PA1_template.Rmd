@@ -1,6 +1,6 @@
 #Reproducible Research: Peer Assessment 1
 ```{r setoptions, TRUE}
-library(knitr)
+require(knitr)
 opts_chunk$set(echo=TRUE, results="asis")
 ```
 ##About data
