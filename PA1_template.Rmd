@@ -1,4 +1,8 @@
 #Reproducible Research: Peer Assessment 1
+```{r setoptions, TRUE}
+library(knitr)
+opts_chunk$set(echo=TRUE, results="asis")
+```
 ##About data
 1. **Dataset**: Activity monitoring data [52K]
 The variables included in this dataset are:
